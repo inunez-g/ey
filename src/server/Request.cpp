@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: Dugonzal <dugonzal@student.42urduliz.com>  +#+  +:+       +#+        */
+/*   By: inunez-g <inunez-g@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/21 08:48:39 by Dugonzal          #+#    #+#             */
-/*   Updated: 2024/04/25 22:14:53 by Dugonzal         ###   ########.fr       */
+/*   Updated: 2024/04/30 18:53:51 by inunez-g         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,6 +104,46 @@ void  Request::parserData(void) {
 
 //FUNCIONES IKER
 
+std::string checkContentType(const std::string& routeToFile) {
+    // Mapeo de extensiones a tipos de contenido
+    std::map<std::string, std::string> extensionsMap;
+    extensionsMap[".html"] = "text/html";
+    extensionsMap[".css"] = "text/css";
+    extensionsMap[".js"] = "application/javascript";
+    extensionsMap[".jpg"] = "image/jpeg";
+    extensionsMap[".jpeg"] = "image/jpeg";
+    extensionsMap[".png"] = "image/png";
+    extensionsMap[".gif"] = "image/gif";
+    extensionsMap[".txt"] = "text/plain";
+
+    // Obtener la extensión del archivo
+    std::string extension;
+    size_t puntoPos = routeToFile.find_last_of('.');
+    if (puntoPos != std::string::npos) {
+        extension = routeToFile.substr(puntoPos);
+        // Convertir la extensión a minúsculas para comparar
+        std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+        std::map<std::string, std::string>::iterator it = extensionsMap.find(extension);
+        if (it != extensionsMap.end()) {
+            return it->second;  // Devuelve el tipo de contenido correspondiente si se encuentra la extensión
+        }
+    }
+    
+    // Si no se encuentra la extensión en el mapa o no hay extensión, se asigna 'text/plain'
+    return "text/plain";
+}
+
+std::string checkAllowedMethods(const std::vector<std::string>& methods) {
+    std::string result;
+    for (size_t i = 0; i < methods.size(); ++i) {
+        if (i != 0) {
+            result += " ";  // Agrega un espacio antes de cada método excepto el primero
+        }
+        result += methods[i];
+    }
+    return result;
+}
+
 int  Request::checkMethod(const string &_method) {
   vector<string> tmp = locationRoot.getmethods();
   for (size_t i = 0; i < tmp.size(); i++) {
@@ -148,14 +188,14 @@ std::string generate_autoindex(const std::string& directoryPath, string autoinde
 
 void Request::getMethod( void )
 {
-	std::map<std::string, std::string> location;
-	//std::map<std::string, std::string> alias;
-	//unsigned long max_length = 3000;
+	//std::map<std::string, std::string> location;
 	//alias["/kapouet"] = "/mi_carpeta";
-	std::string allowed_methods = "GET POST";
+  std::string contentType = checkContentType(route);
+	std::string allowed_methods = checkAllowedMethods(locationRoot.getmethods());
 	std::cout << "GETMETHOD" << std::endl;
-  cout << "PATH RAROO" << locationRoot.getPath() << endl;
-  cout << locations["/a"].getReturn().second << endl;
+  cout << "ContentType " << contentType << endl;
+  cout << "Allowed_methods " << allowed_methods << endl;
+  //cout << locations["/a"].getReturn().second << endl;
 	std::string httpResponse;
 	if (!checkMethod("GET"))
 	{
@@ -208,8 +248,6 @@ void Request::getMethod( void )
 			std::ifstream archivo(locationRoot.getRoot() + route);
 			std::ostringstream oss;    
       std::string directoryPath = locationRoot.getRoot() + route;
-      /*if (route == "/")
-			  directoryPath = locationRoot.getRoot();*/
       std::cout << "Hola estoy aqui " << directoryPath << std::endl;
       std::cout << "HOST: " << locationRoot.getHost() << endl;
       std::cout << "PORT: " << locationRoot.getPort() << endl;
@@ -222,7 +260,7 @@ void Request::getMethod( void )
         autoindex = generate_autoindex(directoryPath, autoindex, route, locationRoot.getHost(), locationRoot.getPort());
         // Respuesta 200 OK con el autoindex
         httpResponse = "HTTP/1.1 200 OK\r\n";
-        httpResponse += "Content-Type: text/html\r\n";
+        httpResponse += "Content-Type: " + contentType + "\r\n";
         httpResponse += "Content-Length: " + std::to_string(autoindex.size()) + "\r\n";
         httpResponse += "\r\n";
         httpResponse += autoindex;
@@ -246,7 +284,7 @@ void Request::getMethod( void )
 				  // Respuesta 200 OK
           cout << "200 OK" << endl;
 	    	  httpResponse = "HTTP/1.1 200 OK\r\n";
-				  httpResponse += "Content-Type: text/html\r\n";
+				  httpResponse += "Content-Type: " + contentType + "\r\n";
 				  httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
 				  httpResponse += "\r\n";
 				  httpResponse += oss.str();
@@ -261,7 +299,7 @@ void Request::getMethod( void )
           oss << archivo.rdbuf();
           cout << "NOT FOUND" << endl;
           std::string httpResponse = "HTTP/1.1 404 Not Found\r\n";
-          httpResponse += "Content-Type: text/html\r\n";
+          httpResponse += "Content-Type: " + contentType + "\r\n";
           httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
           httpResponse += "\r\n";
           httpResponse += oss.str();
@@ -269,7 +307,7 @@ void Request::getMethod( void )
         } else {
           cout << "INTERNAL2" << endl;
 				  httpResponse = "HTTP/1.1 500 Internal Server Error\r\n";
-          httpResponse += "Content-Type: text/html\r\n";
+          httpResponse += "Content-Type: " + contentType + "\r\n";
           httpResponse += "Content-Length: 0\r\n";  // Longitud del contenido (en este caso, 0)
           httpResponse += "\r\n";
           // Asegúrate de agregar un carácter nulo al final de la cadena
@@ -432,6 +470,8 @@ void  Request::serverToClient(const string &_header, size_t fd) {
 	else if (method == "DELETE")
 		deleteMethod();
 }
+
+
 
 /* void  Request::serverToClient(const string &_header, size_t fd) {
   header = _header;
