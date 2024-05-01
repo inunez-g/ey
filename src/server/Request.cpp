@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: inunez-g <inunez-g@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jaizpuru <jaizpuru@student.42urduliz.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/21 08:48:39 by Dugonzal          #+#    #+#             */
-/*   Updated: 2024/04/30 18:53:51 by inunez-g         ###   ########.fr       */
+/*   Updated: 2024/05/01 09:26:53 by jaizpuru         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,14 +45,14 @@ void  Request::setHostAndPort(const string &_host, size_t _port) {
 bool  Request::setMethod(const string &_method) {
   vector<string> tmp = locationRoot.getmethods();
   for (size_t i = 0; i < tmp.size(); i++) {
-    if (!tmp[i].compare(_method)) {
+    if (!tmp[i].compare(_method)) { /* Non-handled method */
       method = _method;
       return (false);
     }
   }
 
   if (_method.compare("GET") && _method.compare("DELETE") \
-    && _method.compare("POST")) {
+    && _method.compare("POST")) { /* Handled method */
       return (true);
   }
   return (true);
@@ -60,10 +60,10 @@ bool  Request::setMethod(const string &_method) {
 
 void  Request::setLocation(void) {
   map<string, Location>::iterator it = locations.find(route);
-  if (it != locations.end()) {
+  if (it != locations.end()) { /* Given route is found in Location blocks */
     locationRoot = it->second;
     isCgi =  it->second.getIsCgi();
-  } else {
+  } else { /* Given route is not found in Location blocks */
     locationRoot = locations.find("root")->second;
     isCgi = false;
   }
@@ -82,23 +82,24 @@ void  Request::parserData(void) {
 
   // set route and version
   if (setRouteAndVersion(trim(lastWord(header.substr(0, pos))))) {
-    logger.Log("error version");
+    logger.Log("error: Request: erroneus HTTP version");
   }
   // set location:
   setLocation();
   // set method
   if (setMethod(trim(firstWord(header.substr(0, pos))))) {
-    logger.Log("error method no allowed");
+    logger.Log("error: Request: Method no allowed");
   }
-  if (isCgi) {
-    string tmp;
-    if (locationRoot.getRoot()[locationRoot.getRoot().size() - 1] != '/') {
-      tmp = locationRoot.getRoot();
+  if (isCgi) { /* If any 'cgi_path' is found in Location block */
+    string tmp = locationRoot.getRoot();
+    if (*tmp.end() != '/') { /* If no '/' is found on path ending, add it */
       tmp.append("/");
     }
     cgi.setCgi(locationRoot.getCgiPath(), tmp + locationRoot.getIndex());
     cgi.handlerCgi();
-    logger.Log("hay que lanzar cgi para esta location");
+    std::stringstream logOutput;
+    logOutput << "warning: found CGI for location block : " << tmp.c_str();
+    logger.Log(logOutput.str().c_str());
   }
 }
 
@@ -174,8 +175,9 @@ std::string generate_autoindex(const std::string& directoryPath, string autoinde
     // Lee el contenido del directorio
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL) {
-        autoindex += "<li><a href=\"" "http://" + host + ":" +std::to_string(port) + "/" + route + "/" + std::string(entry->d_name) + "\">" + std::string(entry->d_name) + "</a></li>\n"; // http://" + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";
-        
+      std::stringstream portStr;
+      portStr << port;
+      autoindex += "<li><a href=\"" "http://" + host + ":" + portStr.str() + "/" + route + "/" + std::string(entry->d_name) + "\">" + std::string(entry->d_name) + "</a></li>\n"; // http://" + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n"; 
     }
 
     autoindex += "</ul><hr></body></html>\n";
@@ -223,10 +225,12 @@ void Request::getMethod( void )
 				httpResponse = "HTTP/1.1 301 Moved Permanently\r\n";
         cout << "LO CONSEGUI" << endl;
         cout << "Location: " + locationRoot.getReturn().second << endl;//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" +location[route] << endl;
+        std::stringstream portStr;
+        portStr << port;
         if (locations[route].getReturn().second[0] == '/')
-          httpResponse += "Location: http://" + host + ":" + std::to_string(port) + locations[route].getReturn().second + "\r\n";
+          httpResponse += "Location: http://" + host + ":" + portStr.str() + locations[route].getReturn().second + "\r\n";
         else
-    		  httpResponse += "Location: http://" + host + ":" + std::to_string(port) + "/" + locations[route].getReturn().second + "\r\n";//+ locationRoot.getReturn().second + "\r\n"; //"Location: " + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";//+ location[route] + "\r\n";//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";
+    		  httpResponse += "Location: http://" + host + ":" + portStr.str() + "/" + locations[route].getReturn().second + "\r\n";//+ locationRoot.getReturn().second + "\r\n"; //"Location: " + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";//+ location[route] + "\r\n";//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";
     		httpResponse += "\r\n";
     		send(clientFd, httpResponse.data(), httpResponse.size(), 0);
 			}
@@ -245,7 +249,9 @@ void Request::getMethod( void )
 		else
 		{
       std::cout << "Hola estoy aqui " << locationRoot.getRoot() + route << std::endl;
-			std::ifstream archivo(locationRoot.getRoot() + route);
+			std::stringstream fileNameStr;
+      fileNameStr << locationRoot.getRoot() << route;
+      std::ifstream archivo(fileNameStr.str().c_str());
 			std::ostringstream oss;    
       std::string directoryPath = locationRoot.getRoot() + route;
       std::cout << "Hola estoy aqui " << directoryPath << std::endl;
@@ -261,7 +267,9 @@ void Request::getMethod( void )
         // Respuesta 200 OK con el autoindex
         httpResponse = "HTTP/1.1 200 OK\r\n";
         httpResponse += "Content-Type: " + contentType + "\r\n";
-        httpResponse += "Content-Length: " + std::to_string(autoindex.size()) + "\r\n";
+        std::stringstream autoIndexStr;
+        autoIndexStr << autoindex.size();
+        httpResponse += "Content-Length: " + autoIndexStr.str() + "\r\n";
         httpResponse += "\r\n";
         httpResponse += autoindex;
         autoDirectory = route;
@@ -285,7 +293,9 @@ void Request::getMethod( void )
           cout << "200 OK" << endl;
 	    	  httpResponse = "HTTP/1.1 200 OK\r\n";
 				  httpResponse += "Content-Type: " + contentType + "\r\n";
-				  httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
+          std::stringstream fileSizeStr;
+          fileSizeStr << oss.str().size();
+				  httpResponse += "Content-Length: " + fileSizeStr.str() + "\r\n";
 				  httpResponse += "\r\n";
 				  httpResponse += oss.str();
 				  send(clientFd, httpResponse.data(), httpResponse.size(), 0);
@@ -300,7 +310,9 @@ void Request::getMethod( void )
           cout << "NOT FOUND" << endl;
           std::string httpResponse = "HTTP/1.1 404 Not Found\r\n";
           httpResponse += "Content-Type: " + contentType + "\r\n";
-          httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
+          std::stringstream fileSizeStr;
+          fileSizeStr << oss.str().size();
+          httpResponse += "Content-Length: " + fileSizeStr.str() + "\r\n";
           httpResponse += "\r\n";
           httpResponse += oss.str();
           send(clientFd, httpResponse.data(), httpResponse.size(), 0);
@@ -437,7 +449,7 @@ std::string adjustRoute(const std::string &locationRoot, std::string &route) {
       route.replace(pos, 2, "/");
   }
   // Verificar si locationRoot termina en "/" y route comienza con "/"
-  if (!locationRoot.empty() && locationRoot.back() == '/' && !route.empty() && route.front() == '/') {
+  if (!locationRoot.empty() && *locationRoot.end() == '/' && !route.empty() && *route.begin() == '/') {
       // Eliminar la barra diagonal de inicio de route
       route.erase(0, 1);
   }

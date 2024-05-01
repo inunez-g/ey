@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Request.cpp                                        :+:      :+:    :+:   */
+/*   Request copy.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: Dugonzal <dugonzal@student.42urduliz.com>  +#+  +:+       +#+        */
+/*   By: jaizpuru <jaizpuru@student.42urduliz.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/21 08:48:39 by Dugonzal          #+#    #+#             */
-/*   Updated: 2024/04/25 22:14:53 by Dugonzal         ###   ########.fr       */
+/*   Updated: 2024/05/01 09:15:34 by jaizpuru         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,9 +128,10 @@ std::string generate_autoindex(const std::string& directoryPath, string autoinde
 
     // Lee el contenido del directorio
     struct dirent* entry;
+    std::stringstream portStr;
     while ((entry = readdir(dir)) != NULL) {
-        autoindex += "<li><a href=\"" "http://" + host + ":" +std::to_string(port) + "/" + route + "/" + std::string(entry->d_name) + "\">" + std::string(entry->d_name) + "</a></li>\n"; // http://" + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";
-        
+      portStr << port;
+      autoindex += "<li><a href=\"" "http://" + host + ":" + portStr.str() + "/" + route + "/" + std::string(entry->d_name) + "\">" + std::string(entry->d_name) + "</a></li>\n"; // http://" + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";  
     }
 
     autoindex += "</ul><hr></body></html>\n";
@@ -179,11 +180,13 @@ void Request::getMethod( void )
 			{
 				httpResponse = "HTTP/1.1 301 Moved Permanently\r\n";
         cout << "LO CONSEGUI" << endl;
-				  std::string host = locationRoot.getHost();
-          cout << "Location: " + locationRoot.getReturn().second << endl;//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" +location[route] << endl;
-    			httpResponse += "Location: http://" + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";//+ locationRoot.getReturn().second + "\r\n"; //"Location: " + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";//+ location[route] + "\r\n";//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";
-    			httpResponse += "\r\n";
-    			send(clientFd, httpResponse.data(), httpResponse.size(), 0);
+        std::string host = locationRoot.getHost();
+        cout << "Location: " + locationRoot.getReturn().second << endl;//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" +location[route] << endl;
+        std::stringstream httpRouteStr;
+        httpRouteStr << locationRoot.getPort() <<  "/" << location[route];
+        httpResponse += "Location: http://" + host + ":" + httpRouteStr.str() + "\r\n";//+ locationRoot.getReturn().second + "\r\n"; //"Location: " + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";//+ location[route] + "\r\n";//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";
+        httpResponse += "\r\n";
+        send(clientFd, httpResponse.data(), httpResponse.size(), 0);
 			}
 			else
 			{
@@ -203,54 +206,60 @@ void Request::getMethod( void )
       std::cout << "HOST: " << host << endl;
       std::cout << "PORT: " << port << endl;
 			if (isDirectory(directoryPath)) {
-                // Generar autoindex
-                std::string autoindex;
-                if (route == "/")
-                  route = ""; 
-                autoindex = generate_autoindex(directoryPath, autoindex, route, host, port);
-                // Respuesta 200 OK con el autoindex
-                httpResponse = "HTTP/1.1 200 OK\r\n";
-                httpResponse += "Content-Type: text/html\r\n";
-                httpResponse += "Content-Length: " + std::to_string(autoindex.size()) + "\r\n";
-                httpResponse += "\r\n";
-                httpResponse += autoindex;
-                autoDirectory = route;
-                send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-        } else if (archivo.is_open()){
-				std::cout << "y" << std::endl;
-				oss << archivo.rdbuf();
-				std::string httpResponse;
-        cout << static_cast<long>(oss.str().size()) << endl;
-        cout << locationRoot.getClientBodySize() << endl;
-				if (static_cast<long>(oss.str().size()) > (locationRoot.getClientBodySize() + 5000))//OJOOO
-				{
-					httpResponse = "HTTP/1.1 413 Request Entity Too Large\r\n";
-					httpResponse += "\r\n";
-					send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-				}
-				else
-				{
-					// Respuesta 200 OK
-          cout << "200 OK" << endl;
-	    		httpResponse = "HTTP/1.1 200 OK\r\n";
-					httpResponse += "Content-Type: text/html\r\n";
-					httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
-					httpResponse += "\r\n";
-					httpResponse += oss.str();
-					send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-				}
-	    	}
+          // Generar autoindex
+          std::string autoindex;
+          if (route == "/")
+            route = ""; 
+          autoindex = generate_autoindex(directoryPath, autoindex, route, host, port);
+          // Respuesta 200 OK con el autoindex
+          httpResponse = "HTTP/1.1 200 OK\r\n";
+          httpResponse += "Content-Type: text/html\r\n";
+          std::stringstream autoIndexStr;
+          autoIndexStr << autoindex.size();
+          httpResponse += "Content-Length: " + autoIndexStr.str() + "\r\n";
+          httpResponse += "\r\n";
+          httpResponse += autoindex;
+          autoDirectory = route;
+          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
+      } else if (archivo.is_open()) {
+          std::cout << "y" << std::endl;
+          oss << archivo.rdbuf();
+          std::string httpResponse;
+          cout << static_cast<long>(oss.str().size()) << endl;
+          cout << locationRoot.getClientBodySize() << endl;
+          if (static_cast<long>(oss.str().size()) > (locationRoot.getClientBodySize() + 5000))//OJOOO
+          {
+            httpResponse = "HTTP/1.1 413 Request Entity Too Large\r\n";
+            httpResponse += "\r\n";
+            send(clientFd, httpResponse.data(), httpResponse.size(), 0);
+          }
+          else
+          {
+            // Respuesta 200 OK
+            cout << "200 OK" << endl;
+            httpResponse = "HTTP/1.1 200 OK\r\n";
+            httpResponse += "Content-Type: text/html\r\n";
+            std::stringstream fileSizeStr;
+            fileSizeStr << oss.str().size();
+            httpResponse += "Content-Length: " + fileSizeStr.str() + "\r\n";
+            httpResponse += "\r\n";
+            httpResponse += oss.str();
+            send(clientFd, httpResponse.data(), httpResponse.size(), 0);
+          }
+        }
 			else
-			{
-				std::ifstream archivo("resources/GET/404.html");
-	    		oss << archivo.rdbuf();
-				std::string httpResponse = "HTTP/1.1 404 Not Found\r\n";
-				httpResponse += "Content-Type: text/html\r\n";
-				httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
-				httpResponse += "\r\n";
-				httpResponse += oss.str();
-				send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-			}
+        {
+          std::ifstream archivo("resources/GET/404.html");
+          oss << archivo.rdbuf();
+          std::string httpResponse = "HTTP/1.1 404 Not Found\r\n";
+          httpResponse += "Content-Type: text/html\r\n";
+          std::stringstream fileSizeStr;
+          fileSizeStr << oss.str().size();
+          httpResponse += "Content-Length: " + fileSizeStr.str() + "\r\n";
+          httpResponse += "\r\n";
+          httpResponse += oss.str();
+          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
+        }
 		}
 	}
 	
