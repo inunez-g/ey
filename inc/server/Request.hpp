@@ -65,4 +65,5 @@ class Request {
   void        getMethod( void );
   void        postMethod( void );
   void        deleteMethod( void );
+  std::string replaceAlias(const std::string& path);
 };

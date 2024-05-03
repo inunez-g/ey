@@ -186,52 +186,6 @@ std::string generate_autoindex(const std::string& directoryPath, string autoinde
     return autoindex;
 }
 
-std::string adjustRoute(const std::string &locationRoot, std::string &route) {
-  size_t pos = 0;
-  while ((pos = route.find("//", pos)) != std::string::npos) {
-      // Reemplaza la secuencia "//" con una sola "/"
-      route.replace(pos, 2, "/");
-  }
-  // Verificar si locationRoot termina en "/" y route comienza con "/"
-  if (!locationRoot.empty() && locationRoot.back() == '/' && !route.empty() && route.front() == '/') {
-      // Eliminar la barra diagonal de inicio de route
-      route.erase(0, 1);
-  }
-  // Eliminar barras diagonales duplicadas
-  
-  
-  return route;
-}
-
-std::string personalizeErrorPage(std::map<size_t, std::string> errorPages, size_t errorCode, const std::string rootPath, string httpResponse)
-{
-  string filePath = adjustRoute(rootPath, errorPages[errorCode]).c_str();
-  std::ifstream archivo(filePath);
-  if (archivo.is_open()) {
-    std::ostringstream oss;
-    oss << archivo.rdbuf();
-
-    httpResponse += "Content-Type: " + checkContentType(errorPages[errorCode].c_str()) + "\r\n";
-    httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
-    httpResponse += "\r\n";
-    httpResponse += oss.str();
-  }
-  else
-  {
-    httpResponse += "Content-Type: text/html\r\n";
-    httpResponse += "Content-Length: 0\r\n";
-    httpResponse += "\r\n";
-  }
-  return (httpResponse);
-}
-
-void printErrorPages(const std::map<size_t, std::string>& errorPages) {
-  cout << "DENTROOOOOOOOO" << endl;
-    for (std::map<size_t, std::string>::const_iterator it = errorPages.begin(); it != errorPages.end(); ++it) {
-        std::cout << "Key: " << it->first << ", Value: " << it->second << std::endl;
-    }
-}
-
 void Request::getMethod( void )
 {
 	//std::map<std::string, std::string> location;
@@ -243,31 +197,13 @@ void Request::getMethod( void )
   cout << "Allowed_methods " << allowed_methods << endl;
   //cout << locations["/a"].getReturn().second << endl;
 	std::string httpResponse;
-  bool loc = false;
-  std::map<size_t, std::string> errorPages;
-  std::map<std::string, Location>::iterator locationIterator = locations.find(route);
-  printErrorPages(errorPages);
-  if (locationIterator != locations.end())
-  {
-    loc = true;
-    errorPages = locationIterator->second.getErrorPages();
-  }
 	if (!checkMethod("GET"))
 	{
-    std::string httpResponse = "HTTP/1.1 405 Method Not Allowed\r\n";
+		std::string httpResponse = "HTTP/1.1 405 Method Not Allowed\r\n";
     httpResponse += "Allow: " + allowed_methods + "\r\n";
-		if (loc && (errorPages.find(405) != errorPages.end())) {
-      httpResponse = personalizeErrorPage(errorPages, 405, locationRoot.getRoot(), httpResponse);
-      std::cout << "Error allowed methods" << std::endl;
-      send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-    } else {
-      // Si no hay una página de error definida, responder con el código de estado 405 predeterminado
-      httpResponse += "Content-Type: text/html\r\n";
-      httpResponse += "Content-Length: 0\r\n";
-      httpResponse += "\r\n";
-      std::cout << "Error allowed methods" << std::endl;
-      send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-    }
+    httpResponse += "\r\n";
+		std::cout << "Error allowed methods" << std::endl;
+		send(clientFd, httpResponse.data(), httpResponse.size(), 0);
 	}
 	else
 	{
@@ -275,54 +211,35 @@ void Request::getMethod( void )
 		{
 			if (isAbsolutePath(locations[route].getReturn().second))
 			{
-        httpResponse = "HTTP/1.1 302 Found\r\n";
-        httpResponse += "Location: " + locations[route].getReturn().second + "\r\n";
-        if (loc && (errorPages.find(302) != errorPages.end())) {
-          httpResponse = personalizeErrorPage(errorPages, 302, locationRoot.getRoot(), httpResponse);
-          std::cout << "302 Found" << std::endl;
-          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-        } else {
-          // Si no hay una página de error definida, responder con el código de estado 405 predeterminado
-          httpResponse += "Content-Type: text/html\r\n";
-          httpResponse += "Content-Length: 0\r\n";
-          httpResponse += "\r\n";
-          std::cout << "302 Found" << std::endl;
-          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-        }
+    		// Redirección 301
+				std::cout << "AQUI VA" << std::endl;
+    		httpResponse = "HTTP/1.1 302 Found\r\n";
+    		httpResponse += "Location: " + locations[route].getReturn().second + "\r\n";
+				httpResponse += "\r\n";
+				send(clientFd, httpResponse.data(), httpResponse.size(), 0);
 			}
 			else if (!locations[route].getReturn().second.empty() && route != locations[route].getReturn().second)
 			{
-
-        httpResponse = "HTTP/1.1 301 Moved Permanently\r\n";
+				httpResponse = "HTTP/1.1 301 Moved Permanently\r\n";
+        cout << "LO CONSEGUI" << endl;
+        cout << "Location: " + locationRoot.getReturn().second << endl;//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" +location[route] << endl;
         if (locations[route].getReturn().second[0] == '/')
           httpResponse += "Location: http://" + host + ":" + std::to_string(port) + locations[route].getReturn().second + "\r\n";
         else
-    		  httpResponse += "Location: http://" + host + ":" + std::to_string(port) + "/" + locations[route].getReturn().second + "\r\n";
-        cout << "301 Moved Permanently" << endl;
-        if (loc && (errorPages.find(301) != errorPages.end())) {
-          httpResponse = personalizeErrorPage(errorPages, 301, locationRoot.getRoot(), httpResponse);
-          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-        } else {
-          // Si no hay una página de error definida, responder con el código de estado 405 predeterminado
-          httpResponse += "\r\n";
-          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-        }
+    		  httpResponse += "Location: http://" + host + ":" + std::to_string(port) + "/" + locations[route].getReturn().second + "\r\n";//+ locationRoot.getReturn().second + "\r\n"; //"Location: " + host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";//+ location[route] + "\r\n";//+ host + ":" + std::to_string(locationRoot.getPort()) + "/" + location[route] + "\r\n";
+    		httpResponse += "\r\n";
+    		send(clientFd, httpResponse.data(), httpResponse.size(), 0);
 			}
 			else
 			{
-        httpResponse = "HTTP/1.1 500 Internal Server Error\r\n";
-        std::cout << "500 Internal Server Error" << std::endl;
-        if (loc && (errorPages.find(500) != errorPages.end())) {
-          httpResponse = personalizeErrorPage(errorPages, 500, locationRoot.getRoot(), httpResponse);
-          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-        } else {
-          // Si no hay una página de error definida, responder con el código de estado 405 predeterminado
-          httpResponse += "Content-Type: text/html\r\n";
-          httpResponse += "Content-Length: 0\r\n";
-          httpResponse += "\r\n";
-          httpResponse.push_back('\0');
-          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-        }
+        cout << "INTERNAL" << endl;
+				httpResponse = "HTTP/1.1 500 Internal Server Error\r\n";
+        httpResponse += "Content-Type: text/html\r\n";
+        httpResponse += "Content-Length: 0\r\n";  // Longitud del contenido (en este caso, 0)
+        httpResponse += "\r\n";
+        // Asegúrate de agregar un carácter nulo al final de la cadena
+        httpResponse.push_back('\0');
+				send(clientFd, httpResponse.data(), httpResponse.size(), 0);
 			}
 	  }
 		else
@@ -338,24 +255,6 @@ void Request::getMethod( void )
 			if (isDirectory(directoryPath)) {
         if (locations[route].getAutoIndex() != -1)
         {
-          /*cout << "AUTOINDEX" << endl;
-          std::string autoindex;
-          if (route == "/")
-            route = ""; 
-          autoindex = generate_autoindex(directoryPath, autoindex, route, host, port);
-          httpResponse = "HTTP/1.1 200 OK\r\n";
-          if (loc && (errorPages.find(200) != errorPages.end())) {
-            httpResponse = personalizeErrorPage(errorPages, 200, httpResponse);
-            send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-          } else {
-            // Si no hay una página de error definida, responder con el código de estado 405 predeterminado
-            httpResponse += "Content-Type: text/html\r\n";
-            httpResponse += "Content-Length: " + std::to_string(autoindex.size()) + "\r\n";
-            httpResponse += "\r\n";
-            httpResponse += autoindex;
-            autoDirectory = route;
-            send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-          }*/
           cout << "AUTOINDEX" << endl;
           // Generar autoindex
           std::string autoindex;
@@ -373,42 +272,27 @@ void Request::getMethod( void )
         }
         else
         {
-          httpResponse = "HTTP/1.1 404 Not Found\r\n";
-          std::cout << "404 Not Found" << std::endl;
-          if (loc && (errorPages.find(404) != errorPages.end())) {
-            string filePath = adjustRoute(locationRoot.getRoot(), errorPages[404]).c_str();
-            std::ifstream archivo(filePath);
-            std::string httpResponse = "";
-            if (archivo.is_open()) {
-              std::ostringstream oss;
-              oss << archivo.rdbuf();
-              httpResponse += "Content-Type: " + checkContentType(errorPages[404].c_str()) + "\r\n";
-              httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
-              httpResponse += "\r\n";
-              httpResponse += oss.str();
-              send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-            }
-            else
-            {
-              cout << "INTERNAL1.1" << endl;
-				      httpResponse = "HTTP/1.1 500 Internal Server Error\r\n";
-              httpResponse += "Content-Type: " + contentType + "\r\n";
-              httpResponse += "Content-Length: 0\r\n";  // Longitud del contenido (en este caso, 0)
-              httpResponse += "\r\n";
-              // Asegúrate de agregar un carácter nulo al final de la cadena
-              httpResponse.push_back('\0');
-				      send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-			      }
-          } else {
-            cout << "INTERNAL1.2" << endl;
-				    httpResponse = "HTTP/1.1 500 Internal Server Error\r\n";
+          std::ifstream archivo("resources/GET/404.html");
+          if (archivo.is_open()) {
+            std::ostringstream oss;
+            oss << archivo.rdbuf();
+            cout << "NOT FOUND" << endl;
+            std::string httpResponse = "HTTP/1.1 404 Not Found\r\n";
             httpResponse += "Content-Type: " + contentType + "\r\n";
-            httpResponse += "Content-Length: 0\r\n";  // Longitud del contenido (en este caso, 0)
+            httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
             httpResponse += "\r\n";
-            // Asegúrate de agregar un carácter nulo al final de la cadena
-            httpResponse.push_back('\0');
-				    send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-          }
+            httpResponse += oss.str();
+            send(clientFd, httpResponse.data(), httpResponse.size(), 0);
+          } else {
+          cout << "INTERNAL2" << endl;
+				  httpResponse = "HTTP/1.1 500 Internal Server Error\r\n";
+          httpResponse += "Content-Type: " + contentType + "\r\n";
+          httpResponse += "Content-Length: 0\r\n";  // Longitud del contenido (en este caso, 0)
+          httpResponse += "\r\n";
+          // Asegúrate de agregar un carácter nulo al final de la cadena
+          httpResponse.push_back('\0');
+				  send(clientFd, httpResponse.data(), httpResponse.size(), 0);
+			    }
         }
       } else if (archivo.is_open()){
 				std::cout << "y" << std::endl;
@@ -419,17 +303,9 @@ void Request::getMethod( void )
 				if (static_cast<long>(oss.str().size()) > (locationRoot.getClientBodySize()))//OJOOO
 				{
           cout << "TOO LARGE" << endl;
-          httpResponse = "HTTP/1.1 413 Request Entity Too Large\r\n";
-          if (loc && (errorPages.find(413) != errorPages.end())) {
-            httpResponse = personalizeErrorPage(errorPages, 413, locationRoot.getRoot(), httpResponse);
-            send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-          } else {
-            // Si no hay una página de error definida, responder con el código de estado 405 predeterminado
-            httpResponse += "Content-Type: text/html\r\n";
-            httpResponse += "Content-Length: 0\r\n";
-            httpResponse += "\r\n";
-            send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-          }
+				  httpResponse = "HTTP/1.1 413 Request Entity Too Large\r\n";
+				  httpResponse += "\r\n";
+				  send(clientFd, httpResponse.data(), httpResponse.size(), 0);
 				}
 				else
 				{
@@ -445,34 +321,19 @@ void Request::getMethod( void )
 	    }
 			else
 			{
-        httpResponse = "HTTP/1.1 404 Not Found\r\n";
-        std::cout << "404 Not Found" << std::endl;
-        if (loc && (errorPages.find(404) != errorPages.end())) {
-          string filePath = adjustRoute(locationRoot.getRoot(), errorPages[404]).c_str();
-          std::ifstream archivo(filePath);
-          std::string httpResponse = "";
-          if (archivo.is_open()) {
-            std::ostringstream oss;
-            oss << archivo.rdbuf();
-            httpResponse += "Content-Type: " + checkContentType(errorPages[404].c_str()) + "\r\n";
-            httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
-            httpResponse += "\r\n";
-            httpResponse += oss.str();
-            send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-          }
-          else
-          {
-            cout << "INTERNAL2.1" << endl;
-				    httpResponse = "HTTP/1.1 500 Internal Server Error\r\n";
-            httpResponse += "Content-Type: " + contentType + "\r\n";
-            httpResponse += "Content-Length: 0\r\n";  // Longitud del contenido (en este caso, 0)
-            httpResponse += "\r\n";
-            // Asegúrate de agregar un carácter nulo al final de la cadena
-            httpResponse.push_back('\0');
-				    send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-			    }
+				std::ifstream archivo("resources/GET/404.html");
+        if (archivo.is_open()) {
+          std::ostringstream oss;
+          oss << archivo.rdbuf();
+          cout << "NOT FOUND" << endl;
+          std::string httpResponse = "HTTP/1.1 404 Not Found\r\n";
+          httpResponse += "Content-Type: " + contentType + "\r\n";
+          httpResponse += "Content-Length: " + std::to_string(oss.str().size()) + "\r\n";
+          httpResponse += "\r\n";
+          httpResponse += oss.str();
+          send(clientFd, httpResponse.data(), httpResponse.size(), 0);
         } else {
-          cout << "INTERNAL2.2" << endl;
+          cout << "INTERNAL2" << endl;
 				  httpResponse = "HTTP/1.1 500 Internal Server Error\r\n";
           httpResponse += "Content-Type: " + contentType + "\r\n";
           httpResponse += "Content-Length: 0\r\n";  // Longitud del contenido (en este caso, 0)
@@ -480,10 +341,11 @@ void Request::getMethod( void )
           // Asegúrate de agregar un carácter nulo al final de la cadena
           httpResponse.push_back('\0');
 				  send(clientFd, httpResponse.data(), httpResponse.size(), 0);
-        }
-      }
-    }
-  }
+			  }
+			}
+		}
+	}
+	
 	std::cout << "TERMINO" << std::endl;
 	close(clientFd);
 }
@@ -601,6 +463,22 @@ std::string Request::replaceAlias(const std::string& path) {
     }
     return route;
 }*/
+std::string adjustRoute(const std::string &locationRoot, std::string &route) {
+  size_t pos = 0;
+  while ((pos = route.find("//", pos)) != std::string::npos) {
+      // Reemplaza la secuencia "//" con una sola "/"
+      route.replace(pos, 2, "/");
+  }
+  // Verificar si locationRoot termina en "/" y route comienza con "/"
+  if (!locationRoot.empty() && locationRoot.back() == '/' && !route.empty() && route.front() == '/') {
+      // Eliminar la barra diagonal de inicio de route
+      route.erase(0, 1);
+  }
+  // Eliminar barras diagonales duplicadas
+  
+  
+  return route;
+}
 
 void  Request::serverToClient(const string &_header, size_t fd) {
   header = _header;
