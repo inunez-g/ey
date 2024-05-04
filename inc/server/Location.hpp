@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: Dugonzal <dugonzal@student.42urduliz.com>  +#+  +:+       +#+        */
+/*   By: inunez-g <inunez-g@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/22 18:55:56 by Dugonzal          #+#    #+#             */
-/*   Updated: 2024/04/25 20:33:03 by Dugonzal         ###   ########.fr       */
+/*   Updated: 2024/05/04 19:28:59 by inunez-g         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@ class Location {
     const string                getCgiext(void) const;
     const vector<string>        getmethods(void) const;
     const pair<size_t, string>  getReturn(void) const;
-    const map<size_t, string>   &getErrorPages(void) const;
+    map<size_t, string>         &getErrorPages(void);
     const string                getHost(void) const;
     int                         getPort(void) const;
     const string                getServerName(void) const;
