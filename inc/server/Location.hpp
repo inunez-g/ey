@@ -61,7 +61,7 @@ class Location {
     const string                getCgiext(void) const;
     const vector<string>        getmethods(void) const;
     const pair<size_t, string>  getReturn(void) const;
-    const map<size_t, string>   getErrorPages(void) const;
+    const map<size_t, string>   &getErrorPages(void) const;
     const string                getHost(void) const;
     int                         getPort(void) const;
     const string                getServerName(void) const;

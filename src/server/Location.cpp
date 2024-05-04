@@ -244,7 +244,7 @@ const pair<size_t, string>  Location::getReturn(void) const {
   return(_return);
 }
 
-const map<size_t, string> Location::getErrorPages(void) const {
+const map<size_t, string> &Location::getErrorPages(void) const {
   return(errorPages);
 }
 

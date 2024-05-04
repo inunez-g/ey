@@ -244,13 +244,29 @@ void Request::getMethod( void )
   //cout << locations["/a"].getReturn().second << endl;
 	std::string httpResponse;
   bool loc = false;
-  std::map<size_t, std::string> errorPages;
+  /*std::map<size_t, std::string> errorPages;
   std::map<std::string, Location>::iterator locationIterator = locations.find(route);
   printErrorPages(errorPages);
   if (locationIterator != locations.end())
   {
+    cout << "Existe la loc" << endl;
     loc = true;
-    errorPages = locationIterator->second.getErrorPages();
+    errorPages = locationIterator->second.getErrorPages();  
+  }*/
+  std::map<size_t, std::string> errorPages;
+  //std::map<std::string, Location>::iterator locationIterator = locations.find(route);
+  printErrorPages(errorPages);
+  cout << "RUTA ACTUAL: " << route << endl;
+  if (locations.find(route) != locations.end())
+  {
+      cout << "Existe la loc" << endl;
+      loc = true;
+
+      // Obtenemos las páginas de error de la ubicación actual
+      std::map<size_t, std::string> locationErrorPages = locations.find(route)->second.getErrorPages();
+
+      // Fusionamos las páginas de error nuevas con las antiguas
+      errorPages.insert(locationErrorPages.begin(), locationErrorPages.end());
   }
 	if (!checkMethod("GET"))
 	{
@@ -271,7 +287,8 @@ void Request::getMethod( void )
 	}
 	else
 	{
-		if (locations.find(route) != locations.end())
+    std::string directoryPath = locationRoot.getRoot() + route;
+		if (locations.find(route) != locations.end() && !isDirectory(directoryPath))
 		{
 			if (isAbsolutePath(locations[route].getReturn().second))
 			{
@@ -336,7 +353,7 @@ void Request::getMethod( void )
       std::cout << "PORT: " << port << endl;
       std::cout << "AUTOINDEX: " << locations[route].getAutoIndex() << std::endl;
 			if (isDirectory(directoryPath)) {
-        if (locations[route].getAutoIndex() != -1)
+        if (locations[route].getAutoIndex() == 1 || locations[route].getAutoIndex() == -1)
         {
           /*cout << "AUTOINDEX" << endl;
           std::string autoindex;
@@ -374,10 +391,11 @@ void Request::getMethod( void )
         else
         {
           httpResponse = "HTTP/1.1 404 Not Found\r\n";
-          std::cout << "404 Not Found" << std::endl;
           if (loc && (errorPages.find(404) != errorPages.end())) {
+            std::cout << "404 Not Found" << std::endl;
             string filePath = adjustRoute(locationRoot.getRoot(), errorPages[404]).c_str();
-            std::ifstream archivo(filePath);
+            std::cout << "FILE404PATH = " << locationRoot.getRoot() + filePath << endl;
+            std::ifstream archivo(locationRoot.getRoot() + filePath);
             std::string httpResponse = "";
             if (archivo.is_open()) {
               std::ostringstream oss;
@@ -502,7 +520,7 @@ void Request::postMethod( void )
         return;
     } else {
 		std::string msgString(header);
-	    size_t bodyStart = msgString.find("\r\n\r\n");
+	  size_t bodyStart = msgString.find("\r\n\r\n");
 		std::string postBody = msgString.substr(bodyStart + 4);
 	    if (postBody.empty()) {
 	        std::cout << "HTTP/1.1 204 No Content\r\n" << std::endl;
