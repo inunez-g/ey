@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Location.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: Dugonzal <dugonzal@student.42urduliz.com>  +#+  +:+       +#+        */
+/*   By: inunez-g <inunez-g@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/23 09:52:57 by Dugonzal          #+#    #+#             */
-/*   Updated: 2024/04/25 22:11:37 by Dugonzal         ###   ########.fr       */
+/*   Updated: 2024/05/04 19:29:49 by inunez-g         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -244,7 +244,7 @@ const pair<size_t, string>  Location::getReturn(void) const {
   return(_return);
 }
 
-const map<size_t, string> Location::getErrorPages(void) const {
+map<size_t, string> &Location::getErrorPages(void) {
   return(errorPages);
 }
 
@@ -285,7 +285,6 @@ ostream &operator<<(ostream &os, const Location &copy) {
   << copy.getCgiPath() << endl <<  endl << "methods: " \
   << copy.getmethods().size() << endl << "return: " \
   << copy.getReturn().second << endl << "errorPages: " \
-  << copy.getErrorPages().size() << endl << "isCgi: " \
   << copy.getIsCgi() << endl << "alias: " << copy.getAlias() << endl;
   return (os);
 }
