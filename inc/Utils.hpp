@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: Dugonzal <dugonzal@student.42urduliz.com>  +#+  +:+       +#+        */
+/*   By: jaizpuru <jaizpuru@student.42urduliz.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/20 16:49:34 by Dugonzal          #+#    #+#             */
-/*   Updated: 2024/04/25 19:35:21 by Dugonzal         ###   ########.fr       */
+/*   Updated: 2024/05/01 09:25:52 by jaizpuru         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,7 @@
 # include <sstream>
 # include <cstdio>
 # include <filesystem>
+# include <algorithm>
 
 using std::deque;
 using std::set;
